@@ -165,13 +165,12 @@ void getTime() {
 }
 
 void writeSD(String sdData) {
-  sdFile = SD.open(SD_FILENAME, FILE_WRITE); // open SD card file
-  // record CSV row to SD card
+  sdFile = SD.open(SD_FILENAME, FILE_WRITE); // open SD card file based on specified name
+  // records CSV row to SD card
   if (sdFile) {
     Serial.print("Writing data to CSV file: ");
-    sdFile.println(sdData); // log data to CSV
-    Serial.println(sdData); // print in console
-
+    sdFile.println(sdData); // log data row to CSV
+    Serial.println(sdData); // print it as well in the console
     sdFile.close();
   } else {
     // if the file didn't open, print an error:
@@ -181,34 +180,38 @@ void writeSD(String sdData) {
 }
 
 void throwError(String errorMessage) {
+  // clears display to allow for more room for the error message
   display.clearDisplay();
   display.setCursor(0,0);
+  // formats/shows text for the error message to display based on specified string
   display.println("IMPORTANT:");
   display.println(errorMessage);
+  // displays the error for a few seconds to allow human reading
   display.display();
-
   Serial.println(errorMessage);
   delay(2000);
-  display.clearDisplay();
+  display.clearDisplay(); // clears display for future runs in event error is fixed
 }
 
 void timeSet() {
+  // one-by-one prompts user for each aspect of the time
   rtc.setHour(getSerialNumber("Enter the current hour (24 hour time)..."));
   rtc.setMinute(getSerialNumber("Enter the current minute..."));
   rtc.setSecond(getSerialNumber("Enter the current second..."));
 }
 void dateSet() {
+  // one-by-one prompts user for each aspect of the date
   rtc.setYear(getSerialNumber("Enter the current year (last two digits)..."));
   rtc.setMonth(getSerialNumber("Enter the current month..."));
   rtc.setDate(getSerialNumber("Enter the current day..."));
 }
 
-
+// code used when we need to receieve an integer over the serial data
 int getSerialNumber(String prompt) {
-  Serial.println(prompt);
-  while (Serial.available() == 0) {}
-  String serialRead = Serial.readString();
-  serialRead.trim();
-  byte serialReadNum = serialRead.toInt();
-  return serialReadNum;
+  Serial.println(prompt); // prints prompt to the console for what it needs
+  while (Serial.available() == 0) {} // waits until serial receives some input data
+  String serialRead = Serial.readString(); // reads the string over serial
+  serialRead.trim(); // trims of extra spaces at start/end to prevent confusing errors
+  byte serialReadNum = serialRead.toInt(); // attempts to cast the string input to a byte, could fail/crash
+  return serialReadNum; // sends back out the integer as the output
 }
