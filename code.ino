@@ -26,6 +26,7 @@ const int buttonPin = 2; // pin for data gathering from the button
 int buttonState = 0;  // variable for reading the pushbutton status
 bool isData; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
 
+// setup runs once when the code turns on, sets up everything to work
 void setup() {
   Serial.begin(9600); // starts computer connection to send debug/logs/commands
   Wire.begin(); // starts I2C bus for sensors/RTC
@@ -33,28 +34,29 @@ void setup() {
   //while (!Serial); // STOPS code until computer plugged in, enable for debugging but will prevent battery operation
 
   // test display with splash screen
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // sets up
-  Serial.println("OLED intialized");
-  display.display();
-  delay(500);
-  display.clearDisplay();
-  display.display();
-  // set font sizing info
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // sets up OLED display type
+  Serial.println("OLED intialized"); // logs that display initilization worked
+  display.display(); // tests display with Adafruit Logo
+  delay(500); // leaves display as-is so user can verify
+  display.clearDisplay(); // blanks dispklay as the rest loads
+  display.display(); // loads blank display into memory
+  // set font info for display
+  display.setTextSize(1); // sets font scale to be small size
+  display.setTextColor(WHITE); // sets font to be white text (monochrome display)
   
 
   // SD Card Setup:
-  Serial.print("Initializing SD card...");
+  Serial.print("Initializing SD card..."); // logs to show start of SD setup
+  // checks to see if SD card is connected
   if (!SD.begin(chipSelect)) {
     throwError("SD initialization failed.");
     while (true); // HALTS if SD card isn't inserted
   }
-  Serial.println("SD card initialization done.");
+  Serial.println("SD card initialization done."); // logs to show end of SD setup
 
-  // Log to CSV
+  // headeders for CSV file
   if (!SD.exists(SD_FILENAME)) {
-    writeSD("date,time,irChipTemp,irObjectTemp,ambientTemp,ambientHumidity,isData"); // creates headers for CSV data if the file is new
+    writeSD("date,time,irChipTemp,irObjectTemp,ambientTemp,ambientHumidity,isData"); // creates headers for CSV data if the CSV doesn't exist yet
   }
 
   // Setup IR Sensor
@@ -74,68 +76,78 @@ void setup() {
     throwError("Couldn't find SHT4x ambient sensor!"); 
     while (true); 
   } // HALTS if ambient sensor isn't connected
-  Serial.print("Found SHT4x sensor, Serial number 0x"); 
-  Serial.println(sht4.readSerial(), HEX);
-  sht4.setPrecision(SHT4X_HIGH_PRECISION); // sets precision to HIGH (also can be MED or LOW
-  sht4.setHeater(SHT4X_NO_HEATER); // disables heater in sensor
+  Serial.print("Found SHT4x sensor, Serial number 0x");
+  Serial.println(sht4.readSerial(), HEX); // logs sensor serial for logging
+  sht4.setPrecision(SHT4X_HIGH_PRECISION); // sets precision to HIGH (also can be MED or LOW)
+  sht4.setHeater(SHT4X_NO_HEATER); // disables heater in sensor because we don't need it
 }
 
 void loop() {
   delay(1000); // short wait before gathering data
 
-  // record IR data
+  // record IR data from sensor
   float irChipTemp = irSensor.getAmbientTempCelsius(); 
   float irObjectTemp = irSensor.getObjectTempCelsius();
 
-  // record ambient data
+  // record ambient data from sensor
   sensors_event_t humidity, temp; 
   sht4.getEvent(&humidity, &temp);
   float ambientTemp = temp.temperature;
   float ambientHumidity = humidity.relative_humidity;
 
-  buttonState = digitalRead(buttonPin);
+  buttonState = digitalRead(buttonPin); // reads current button state
+  // assigns data variable to state of button being pushed
   if (buttonState == HIGH) {
     isData = false;
-  } else {
+  } else if (buttonState == LOW) {
     isData = true;
-  }  
+  }  else {
+    throwError("Button not detected.");
+  }
 
-  getTime(); // gets time
+  getTime(); // gets time and assigns it to the global variables
 
-  // create String for CSV row format/serial log
-  //String csvRow = rtcYear + "-" + rtcMonth + "-" + rtcDay + "," + rtcHour + ":" + rtcMinute + ":" + rtcSecond + "," + irAmbientTemp + "," + irObjectTemp;
-  String date = String(rtcYear) + "-" + String(rtcMonth) + "-" + String(rtcDay);
-  String time = String(rtcHour) + ":" + String(rtcMinute) + ":" + String(rtcSecond);
+  String date = String(rtcYear) + "-" + String(rtcMonth) + "-" + String(rtcDay); // creates combined date string for csv/screen
+  String time = String(rtcHour) + ":" + String(rtcMinute) + ":" + String(rtcSecond); // creates combined time string for csv/screen
+  // create the CSV and serial data row combining time/data/data to one string
   String csvRow = date + "," + time + "," + String(irChipTemp) + "," + String(irObjectTemp) + "," + String(ambientTemp) + "," + String(ambientHumidity) + "," + String(isData);
-  writeSD(csvRow);
 
 
   // writes data to dsiplay
-  display.clearDisplay();
-  display.setCursor(0,0);
-  oledLine = date + " | " + time;
+  display.clearDisplay(); // clears/resets the display buffer to be blank
+  display.setCursor(0,0); // goes to the top left to begin writing
+
+  // writes date/time to the first/top row
+  oledLine = date + " | " + time; 
   display.println(oledLine);
+  // writes IR data to the second row
   oledLine = "Ob: " + String(irObjectTemp) + " | Ch: " + String(irChipTemp);
   display.println(oledLine);
+  // writes ambient data to the third row
   oledLine = "Am: " + String(ambientTemp) + " | Hu: " + String(ambientHumidity);
   display.println(oledLine);
+  // writes status of button to the fourth/bottom row
   oledLine = "Status: " + String(isData);
   display.println(oledLine);
-  display.display();
 
+  display.display(); // shows/updates the actual display with our new display buffer
+
+  // handles commands from the computer to help with debug/logging
   if(Serial.available() != 0) {
-    String serialRead = Serial.readString();
-    serialRead.trim();
+    String serialRead = Serial.readString(); // reads the command over serial if new input is detected
+    serialRead.trim(); // removes leading/trailing spaces for clean input
 
     if (serialRead == "timeset") {
-      timeSet();
+      timeSet(); // triggers protocol to send the time updated over serial
     } else if (serialRead == "dateset") {
-      dateSet();
+      dateSet(); // triggers protocol to send the date updated over serial
     } else if (serialRead == "cleardisplay") {
+      // debug system by clearing the display of garbage data
       display.clearDisplay();
       display.display();
       Serial.println("Display cleared");
     } else {
+      // throws short error if weird/bad data is received
       String errorMessage = "Invalid serial data received: " + serialRead;
       throwError(errorMessage);
     }
@@ -143,9 +155,9 @@ void loop() {
 }
 
 void getTime() {
-  // record date/time from RTC
+  // record date/time from RTC and assign to global variables
   rtcYear = rtc.getYear();
-  rtcMonth = rtc.getMonth(rtcCentury);
+  rtcMonth = rtc.getMonth(rtcCentury); // RTC century bit is weird niche thing we don't care about
   rtcDay = rtc.getDate();
   rtcHour = rtc.getHour(rtcH12Flag, rtcPmFlag); // ensure 24 hour time (no AM/PM)
   rtcMinute = rtc.getMinute();
