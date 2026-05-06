@@ -25,16 +25,16 @@ String oledLine = ""; // sets diplsay text buffer before writing
 
 const int buttonPin = 2; // pin for data gathering from the button
 int buttonState = 0;  // variable for reading the pushbutton status
-bool isData; // 
+bool isData; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
 
 void setup() {
-  Serial.begin(9600); // starts computer connection
+  Serial.begin(9600); // starts computer connection to send debug/logs/commands
   Wire.begin(); // starts I2C bus for sensors/RTC
 
-  //while (!Serial); // STOPS code until computer plugged in
+  //while (!Serial); // STOPS code until computer plugged in, enable for debugging but will prevent battery operation
 
   // test display with splash screen
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // sets up
   Serial.println("OLED intialized");
   display.display();
   delay(500);
