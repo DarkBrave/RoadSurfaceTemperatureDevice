@@ -3,7 +3,6 @@ DS3231 rtc; // declare RTC type
 bool rtcCentury = false;
 bool rtcH12Flag = false;
 bool rtcPmFlag;
-//DateTime startTime; // gets default computer time
 
 int rtcYear, rtcMonth, rtcDay, rtcHour, rtcMinute, rtcSecond;
 
