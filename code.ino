@@ -24,7 +24,8 @@ String oledLine = ""; // sets diplsay text buffer before writing
 
 const int buttonPin = 2; // pin for data gathering from the button
 int buttonState = 0;  // variable for reading the pushbutton status
-bool isData; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
+bool isData = false; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
+int dataChunk = 0;
 
 // setup runs once when the code turns on, sets up everything to work
 void setup() {
@@ -56,7 +57,7 @@ void setup() {
 
   // headeders for CSV file
   if (!SD.exists(SD_FILENAME)) {
-    writeSD("date,time,irChipTemp,irObjectTemp,ambientTemp,ambientHumidity,isData"); // creates headers for CSV data if the CSV doesn't exist yet
+    writeSD("date,time,irChipTemp,irObjectTemp,ambientTemp,ambientHumidity,isData,dataChunk"); // creates headers for CSV data if the CSV doesn't exist yet
   }
 
   // Setup IR Sensor
@@ -100,6 +101,10 @@ void loop() {
   if (buttonState == HIGH) {
     isData = false;
   } else if (buttonState == LOW) {
+    // if this is the start of a new "chunk"/past row was not pushed, increase the chunk counter
+    if (isData == false) {
+      dataChunk++;
+    }
     isData = true;
   }  else {
     throwError("Button not detected.");
@@ -110,8 +115,8 @@ void loop() {
   String date = String(rtcYear) + "-" + String(rtcMonth) + "-" + String(rtcDay); // creates combined date string for csv/screen
   String time = String(rtcHour) + ":" + String(rtcMinute) + ":" + String(rtcSecond); // creates combined time string for csv/screen
   // create the CSV and serial data row combining time/data/data to one string
-  String csvRow = date + "," + time + "," + String(irChipTemp) + "," + String(irObjectTemp) + "," + String(ambientTemp) + "," + String(ambientHumidity) + "," + String(isData);
-
+  String csvRow = date + "," + time + "," + String(irChipTemp) + "," + String(irObjectTemp) + "," + String(ambientTemp) + "," + String(ambientHumidity) + "," + String(isData) + "," + String(dataChunk);
+  writeSD(csvRow);
 
   // writes data to dsiplay
   display.clearDisplay(); // clears/resets the display buffer to be blank
@@ -127,7 +132,7 @@ void loop() {
   oledLine = "Am: " + String(ambientTemp) + " | Hu: " + String(ambientHumidity);
   display.println(oledLine);
   // writes status of button to the fourth/bottom row
-  oledLine = "Status: " + String(isData);
+  oledLine = "Status: " + String(isData) + " | Chunk: " + String(dataChunk);
   display.println(oledLine);
 
   display.display(); // shows/updates the actual display with our new display buffer
@@ -141,6 +146,8 @@ void loop() {
       timeSet(); // triggers protocol to send the time updated over serial
     } else if (serialRead == "dateset") {
       dateSet(); // triggers protocol to send the date updated over serial
+    } else if (serialRead == "chunkreset") {
+      dataChunk = 0; // resets the chunk counter back to zero
     } else if (serialRead == "cleardisplay") {
       // debug system by clearing the display of garbage data
       display.clearDisplay();
