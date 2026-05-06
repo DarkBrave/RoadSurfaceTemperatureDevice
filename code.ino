@@ -204,7 +204,7 @@ void timeSet() {
   // one-by-one prompts user for each aspect of the time
   rtc.setHour(getSerialNumber("Enter the current hour (24 hour time)..."));
   rtc.setMinute(getSerialNumber("Enter the current minute..."));
-  rtc.setSecond(getSerialNumber("Enter the current second..."));
+  rtc.setSecond(getSerialNumber("Enter the current second...")+2);
 }
 void dateSet() {
   // one-by-one prompts user for each aspect of the date
