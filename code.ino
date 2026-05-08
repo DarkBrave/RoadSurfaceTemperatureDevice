@@ -219,6 +219,6 @@ int getSerialNumber(String prompt) {
   while (Serial.available() == 0) {} // waits until serial receives some input data
   String serialRead = Serial.readString(); // reads the string over serial
   serialRead.trim(); // trims of extra spaces at start/end to prevent confusing errors
-  byte serialReadNum = serialRead.toInt(); // attempts to cast the string input to a byte, could fail/crash
+  int serialReadNum = serialRead.toInt(); // attempts to cast the string input to a byte, could fail/crash
   return serialReadNum; // sends back out the integer as the output
 }
