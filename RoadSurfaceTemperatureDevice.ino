@@ -208,9 +208,7 @@ void writeSD(String sdData) {
 }
 
 void throwError(String errorMessage) {
-  // clears display to allow for more room for the error message
-  display.clearDisplay();
-  display.setCursor(0,0);
+  clearDisplay(false);// clears display to allow for more room for the error message
   // formats/shows text for the error message to display based on specified string
   display.println("IMPORTANT:");
   display.println(errorMessage);
@@ -218,7 +216,7 @@ void throwError(String errorMessage) {
   display.display();
   Serial.println(errorMessage);
   delay(2000);
-  display.clearDisplay(); // clears display for future runs in event error is fixed
+  clearDisplay(true);
 }
 
 void timeSet() {
