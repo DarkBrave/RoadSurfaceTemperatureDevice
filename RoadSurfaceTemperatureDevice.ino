@@ -13,9 +13,13 @@ String SD_FILENAME = "LOG.csv"; // SD card file name we want to write to
 
 #include <DFRobot_MLX90614.h> // MLX IR sensor library
 DFRobot_MLX90614_I2C irSensor; // declare IR sensor type
+float irChipTemp;
+float irObjectTemp;
 
 #include "Adafruit_SHT4x.h" // SHT4x ambient sensor library
 Adafruit_SHT4x sht4 = Adafruit_SHT4x();  // declare ambient sensor type
+float ambientTemp;
+float ambientHumidity;
 
 #include <Adafruit_GFX.h> // generic display library for screes
 #include <Adafruit_SSD1306.h> // specific OLED chip library
@@ -25,7 +29,7 @@ String oledLine = ""; // sets diplsay text buffer before writing
 const int buttonPin = 2; // pin for data gathering from the button
 int buttonState = 0;  // variable for reading the pushbutton status
 bool isData = false; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
-int dataChunk = 0;
+int dataChunk = 0; // variable for current "chunk" of button being pushed, resetable
 
 // setup runs once when the code turns on, sets up everything to work
 void setup() {
@@ -39,8 +43,7 @@ void setup() {
   Serial.println("OLED intialized"); // logs that display initilization worked
   display.display(); // tests display with Adafruit Logo
   delay(500); // leaves display as-is so user can verify
-  display.clearDisplay(); // blanks dispklay as the rest loads
-  display.display(); // loads blank display into memory
+  clearDisplay(true);
   // set font info for display
   display.setTextSize(1); // sets font scale to be small size
   display.setTextColor(WHITE); // sets font to be white text (monochrome display)
@@ -86,29 +89,9 @@ void setup() {
 void loop() {
   delay(1000); // short wait before gathering data
 
-  // record IR data from sensor
-  float irChipTemp = irSensor.getAmbientTempCelsius(); 
-  float irObjectTemp = irSensor.getObjectTempCelsius();
+  updateSensors();
 
-  // record ambient data from sensor
-  sensors_event_t humidity, temp; 
-  sht4.getEvent(&humidity, &temp);
-  float ambientTemp = temp.temperature;
-  float ambientHumidity = humidity.relative_humidity;
-
-  buttonState = digitalRead(buttonPin); // reads current button state
-  // assigns data variable to state of button being pushed
-  if (buttonState == HIGH) {
-    isData = false;
-  } else if (buttonState == LOW) {
-    // if this is the start of a new "chunk"/past row was not pushed, increase the chunk counter
-    if (isData == false) {
-      dataChunk++;
-    }
-    isData = true;
-  }  else {
-    throwError("Button not detected.");
-  }
+  updateButtonState();
 
   getTime(); // gets time and assigns it to the global variables
 
@@ -119,8 +102,7 @@ void loop() {
   writeSD(csvRow);
 
   // writes data to dsiplay
-  display.clearDisplay(); // clears/resets the display buffer to be blank
-  display.setCursor(0,0); // goes to the top left to begin writing
+  clearDisplay(false); // clears/resets the display buffer to be blank
 
   // writes date/time to the first/top row
   oledLine = date + " | " + time; 
@@ -139,25 +121,64 @@ void loop() {
 
   // handles commands from the computer to help with debug/logging
   if(Serial.available() != 0) {
-    String serialRead = Serial.readString(); // reads the command over serial if new input is detected
-    serialRead.trim(); // removes leading/trailing spaces for clean input
+    handleSerialCommands();
+  }
+}
 
-    if (serialRead == "timeset") {
-      timeSet(); // triggers protocol to send the time updated over serial
-    } else if (serialRead == "dateset") {
-      dateSet(); // triggers protocol to send the date updated over serial
-    } else if (serialRead == "chunkreset") {
-      dataChunk = 0; // resets the chunk counter back to zero
-    } else if (serialRead == "cleardisplay") {
-      // debug system by clearing the display of garbage data
-      display.clearDisplay();
-      display.display();
-      Serial.println("Display cleared");
-    } else {
-      // throws short error if weird/bad data is received
-      String errorMessage = "Invalid serial data received: " + serialRead;
-      throwError(errorMessage);
+void clearDisplay(bool displayImmediately) {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  if (displayImmediately == true) {
+    display.display();
+    Serial.println("Display cleared");
+  } else {
+    Serial.println("Display buffer cleared");
+  }
+}
+
+
+void handleSerialCommands() {
+  String serialRead = Serial.readString(); // reads the command over serial if new input is detected
+  serialRead.trim(); // removes leading/trailing spaces for clean input
+
+  if (serialRead == "timeset") {
+    timeSet(); // triggers protocol to send the time updated over serial
+  } else if (serialRead == "dateset") {
+    dateSet(); // triggers protocol to send the date updated over serial
+  } else if (serialRead == "chunkreset") {
+    dataChunk = 0; // resets the chunk counter back to zero
+  } else if (serialRead == "cleardisplay") {
+    clearDisplay(true); // debug system by clearing the display of garbage data
+  } else {
+    throwError("Invalid serial data received: " + serialRead); // throws short error if weird/bad data is received
+  }
+}
+
+void updateSensors() {
+  // record IR data from sensor
+  irChipTemp = irSensor.getAmbientTempCelsius(); 
+  irObjectTemp = irSensor.getObjectTempCelsius();
+
+  // record ambient data from sensor
+  sensors_event_t humidity, temp; 
+  sht4.getEvent(&humidity, &temp);
+  ambientTemp = temp.temperature;
+  ambientHumidity = humidity.relative_humidity;
+}
+
+void updateButtonState() {
+  buttonState = digitalRead(buttonPin); // reads current button state
+  // assigns data variable to state of button being pushed
+  if (buttonState == HIGH) {
+    isData = false;
+  } else if (buttonState == LOW) {
+    // if this is the start of a new "chunk"/past row was not pushed, increase the chunk counter
+    if (isData == false) {
+      dataChunk++;
     }
+    isData = true;
+  }  else {
+    throwError("Button not detected.");
   }
 }
 
