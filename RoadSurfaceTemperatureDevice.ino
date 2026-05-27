@@ -164,6 +164,10 @@ void updateSensors() {
   sht4.getEvent(&humidity, &temp);
   ambientTemp = temp.temperature;
   ambientHumidity = humidity.relative_humidity;
+
+  if(irObjectTemp <= 0 || irObjectTemp >= 100) {
+    throwError("Extreme IR Object temperature detected!");
+  }
 }
 
 void updateButtonState() {
