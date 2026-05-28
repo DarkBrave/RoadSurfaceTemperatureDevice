@@ -89,6 +89,8 @@ void setup() {
 
 void loop() {
   delay(1000); // short wait before gathering data
+  sdFile = SD.open(SD_FILENAME, FILE_WRITE); // open SD card file based on specified name
+  sdFile.close();
 
   updateSensors();
 
