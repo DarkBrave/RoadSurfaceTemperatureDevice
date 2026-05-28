@@ -35,6 +35,7 @@ int dataChunk = 0; // variable for current "chunk" of button being pushed, reset
 void setup() {
   Serial.begin(9600); // starts computer connection to send debug/logs/commands
   Wire.begin(); // starts I2C bus for sensors/RTC
+  pinMode(buttonPin, INPUT_PULLUP); // sets pin to read
 
   //while (!Serial); // STOPS code until computer plugged in, enable for debugging but will prevent battery operation
 
@@ -52,9 +53,9 @@ void setup() {
   // SD Card Setup:
   Serial.print("Initializing SD card..."); // logs to show start of SD setup
   // checks to see if SD card is connected
-  if (!SD.begin(chipSelect)) {
+  while(!SD.begin(chipSelect)) {
     throwError("SD initialization failed.");
-    while (true); // HALTS if SD card isn't inserted
+    delay(3000);
   }
   Serial.println("SD card initialization done."); // logs to show end of SD setup
 
@@ -166,7 +167,7 @@ void updateSensors() {
   ambientHumidity = humidity.relative_humidity;
 
   if(irObjectTemp <= 0 || irObjectTemp >= 100) {
-    throwError("Extreme IR Object temperature detected!");
+    throwError("Extreme IR Object temperature detected",irObjectTemp);
   }
 }
 
@@ -206,8 +207,10 @@ void writeSD(String sdData) {
     sdFile.close();
   } else {
     // if the file didn't open, print an error:
-    String errorMessage = "error opening SD file to log: " + sdData;
-    throwError(errorMessage);
+    throwError("Error opening SD card to write", sdData);
+    if (!SD.begin(chipSelect)) {
+      throwError("SD initialization failed.");
+    }
   }
 }
 
@@ -219,6 +222,32 @@ void throwError(String errorMessage) {
   // displays the error for a few seconds to allow human reading
   display.display();
   Serial.println(errorMessage);
+  delay(2000);
+  clearDisplay(true);
+}
+void throwError(String errorMessage, String errorData) {
+  clearDisplay(false);// clears display to allow for more room for the error message
+  // formats/shows text for the error message to display based on specified string
+  display.println("IMPORTANT:");
+  display.println(errorMessage);
+  // displays the error for a few seconds to allow human reading
+  display.display();
+  Serial.print(errorMessage);
+  Serial.print(": ");
+  Serial.println(errorData);
+  delay(2000);
+  clearDisplay(true);
+}
+void throwError(String errorMessage, int errorData) {
+  clearDisplay(false);// clears display to allow for more room for the error message
+  // formats/shows text for the error message to display based on specified string
+  display.println("IMPORTANT:");
+  display.println(errorMessage);
+  // displays the error for a few seconds to allow human reading
+  display.display();
+  Serial.print(errorMessage);
+  Serial.print(": ");
+  Serial.println(errorData);
   delay(2000);
   clearDisplay(true);
 }
