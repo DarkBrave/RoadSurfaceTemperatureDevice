@@ -28,6 +28,7 @@ String oledLine = ""; // sets diplsay text buffer before writing
 
 const int buttonPin = 2; // pin for data gathering from the button
 int buttonState = 0;  // variable for reading the pushbutton status
+int oldData = 0;
 bool isData = false; // varialbe for CSV to decide if the currently logged data is marked usable, based on buttonState
 int dataChunk = 0; // variable for current "chunk" of button being pushed, resetable
 
@@ -177,10 +178,11 @@ void updateButtonState() {
   buttonState = digitalRead(buttonPin); // reads current button state
   // assigns data variable to state of button being pushed
   if (buttonState == HIGH) {
+    oldData = isData;
     isData = false;
   } else if (buttonState == LOW) {
     // if this is the start of a new "chunk"/past row was not pushed, increase the chunk counter
-    if (isData == false) {
+    if (isData == false && oldData == 0) {
       dataChunk++;
     }
     isData = true;
