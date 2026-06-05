@@ -2,6 +2,8 @@
 
 Code for a small, portable road surface temperature device based on an Arduino and a variety of COTS electronic parts.
 
+See [the sister repository](https://github.com/DarkBrave/RoadSurfaceTemperatureData) for the R code for the data visualizations made with this device.
+
 ## Libraries
 
 - [Adafruit SHT4x Library (Adafruit_SHT4x.h)](https://github.com/adafruit/Adafruit_SHT4x)
