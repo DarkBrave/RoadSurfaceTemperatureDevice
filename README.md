@@ -10,3 +10,7 @@ Code for a small, portable road surface temperature device based on an Arduino a
 - [DFRobot_MLX90614 (DFRobot_MLX90614.h)](https://github.com/DFRobot/DFRobot_MLX90614)
 - [DS3231 (DS3231.h)](https://github.com/NorthernWidget/DS3231)
 - [Adafruit SSD1306 (Adafruit_SSD1306.h)](https://github.com/adafruit/Adafruit_SSD1306)
+
+## Wiring
+
+![Wiring diagram of the device](./wiring.png)
